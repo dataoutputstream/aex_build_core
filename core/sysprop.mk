@@ -231,6 +231,16 @@ OEM_THUMBPRINT_PROPERTIES := $(filter $(KNOWN_OEM_THUMBPRINT_PROPERTIES),\
     $(PRODUCT_OEM_PROPERTIES))
 KNOWN_OEM_THUMBPRINT_PROPERTIES:=
 
+# Add AospExtended props
+define add-extended-props
+	AOSP_DEVICE="$(TARGET_DEVICE)" \
+	PLATFORM_VERSION="$(PLATFORM_VERSION)" \
+	DATE="$(DATE_FROM_FILE)" \
+	EXTENDED_VERSION="$(EXTENDED_VERSION)" \
+	EXTENDED_BUILD_TYPE="$(EXTENDED_BUILD_TYPE)" \
+        bash vendor/aosp/build/tools/buildinfo_aex.sh >> $(1)
+endef
+
 # -----------------------------------------------------------------
 # system/build.prop
 #
@@ -246,9 +256,13 @@ $(strip $(subst _,-, $(firstword $(1))))
 endef
 
 gen_from_buildinfo_sh := $(call intermediates-dir-for,PACKAGING,system_build_prop)/buildinfo.prop
+
+$(shell rm -rf $(gen_from_buildinfo_sh))
+
 $(gen_from_buildinfo_sh): $(INTERNAL_BUILD_ID_MAKEFILE) $(API_FINGERPRINT) | $(BUILD_DATETIME_FILE) $(BUILD_NUMBER_FILE)
 	$(hide) TARGET_BUILD_TYPE="$(TARGET_BUILD_VARIANT)" \
 	        TARGET_BUILD_FLAVOR="$(TARGET_BUILD_FLAVOR)" \
+		AOSP_DEVICE="$(TARGET_DEVICE)" \
 	        TARGET_DEVICE="$(TARGET_DEVICE)" \
 	        PRODUCT_DEFAULT_LOCALE="$(call get-default-product-locale,$(PRODUCT_LOCALES))" \
 	        PRODUCT_DEFAULT_WIFI_CHANNELS="$(PRODUCT_DEFAULT_WIFI_CHANNELS)" \
@@ -279,6 +293,7 @@ $(gen_from_buildinfo_sh): $(INTERNAL_BUILD_ID_MAKEFILE) $(API_FINGERPRINT) | $(B
 	        TARGET_CPU_ABI="$(TARGET_CPU_ABI)" \
 	        TARGET_CPU_ABI2="$(TARGET_CPU_ABI2)" \
 	        bash $(BUILDINFO_SH) > $@
+		$(call add-extended-props,$@)
 
 ifdef TARGET_SYSTEM_PROP
 system_prop_file := $(TARGET_SYSTEM_PROP)
